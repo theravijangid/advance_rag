@@ -1,5 +1,6 @@
 import { Inngest } from "inngest";
 import { IngestionJobPayload } from "./queue.interface";
+import appConfig from "../../config/config";
 
 type Events = {
   "source/ingest": {
@@ -15,6 +16,7 @@ type Events = {
 
 export const inngestClient = new Inngest({
   id: "adaptive-rag-backend",
+  eventKey: appConfig.ingest.eventKey,
   schemas: {
     events: {} as Events,
   },

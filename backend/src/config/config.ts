@@ -45,6 +45,9 @@ const appConfig = {
   mem0: {
     apiKey: getOptionalEnvVar('MEM0_API_KEY', ''),
   },
+  ingest: {
+    eventKey: getOptionalEnvVar('INNGEST_EVENT_KEY', ''),
+  },
 }
 
 export default appConfig
