@@ -15,9 +15,18 @@ export class QdrantService {
   private readonly collectionName: string;
 
   constructor() {
+    let port: number | undefined;
+    try {
+      const parsedUrl = new URL(appConfig.qdrant.url);
+      port = parsedUrl.port ? parseInt(parsedUrl.port, 10) : (parsedUrl.protocol === 'https:' ? 443 : 6333);
+    } catch (e) {
+      port = appConfig.qdrant.url.startsWith('https') ? 443 : 6333;
+    }
+
     this.client = new QdrantClient({
       url: appConfig.qdrant.url,
       apiKey: appConfig.qdrant.apiKey || undefined,
+      port,
     });
     this.collectionName = appConfig.qdrant.collectionName;
   }
@@ -57,7 +66,7 @@ export class QdrantService {
       })
       return res
     } catch (error: any) {
-      Logger.error(`Error searching Qdrant: ${error.message}`);
+      Logger.error(`Error searching Qdrant: ${error?.cause?.message}`);
       throw new Error(`Qdrant search failed: ${error.message}`);
     }
   }
