@@ -144,18 +144,18 @@ function WorkspaceCard({ workspace }: { workspace: Workspace }) {
           </p>
         )}
       </div>
-      <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
-          <span className="inline-flex items-center gap-1.5">
-            <FileStack className="h-3.5 w-3.5" />
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-y-2 gap-x-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
+            <FileStack className="h-3.5 w-3.5 shrink-0" />
             {workspace.sources.length} sources
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5" />
+          <span className="flex items-center gap-1.5 whitespace-nowrap">
+            <MessageSquare className="h-3.5 w-3.5 shrink-0" />
             {workspace.conversations.length} conversations
           </span>
         </div>
-        <span>Updated {workspace.updatedAt ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(workspace.updatedAt)) : ''}</span>
+        <span className="whitespace-nowrap">Updated {workspace.updatedAt ? new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(workspace.updatedAt)) : ''}</span>
       </div>
     </Link>
   );
