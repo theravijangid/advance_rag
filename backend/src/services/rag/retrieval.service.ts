@@ -19,10 +19,6 @@ export interface RetrievedChunk {
 const reranker: Reranker = new JinaRerankerService();
 
 export class RetrievalService {
-  /**
-   * Embeds the query and retrieves the most relevant chunks from Qdrant,
-   * applying similarity thresholds and top-K truncation.
-   */
   static async retrieveContext(
     workspaceId: string,
     query: string
@@ -32,23 +28,18 @@ export class RetrievalService {
     Logger.info(`[RetrievalService] Query: "${query}" | Workspace: ${workspaceId}`);
     Logger.debug(`[RetrievalService] Config - Candidates: ${retrievalCandidates}, TopK: ${contextTopK}, MinScore: ${minSimilarityScore}`);
 
-    // 1. Embed the query
     const [embedding] = await EmbeddingService.generateEmbeddingsBatch([query]);
 
-    // 2. Retrieve candidate chunks from Qdrant
-    // Qdrant returns results sorted by score (highest first for Cosine)
     const searchResults = await qdrantService.searchChunks(workspaceId, embedding, retrievalCandidates);
     
     Logger.debug(`[RetrievalService] Qdrant returned ${searchResults.length} candidates.`);
 
-    // 3. Filter and map candidates
     const filteredChunks: RetrievedChunk[] = [];
     let rank = 1;
 
     for (const res of searchResults) {
       const score = res.score ?? 0;
       
-      // Stop considering chunks if they fall below the configured threshold
       if (score < minSimilarityScore) {
         Logger.debug(`[RetrievalService] Stopping at rank ${rank} due to score ${score} < ${minSimilarityScore}`);
         break;
@@ -66,7 +57,6 @@ export class RetrievalService {
 
     Logger.info(`[RetrievalService] ${filteredChunks.length} candidates passed the minimum score threshold.`);
 
-    // 4–6. Deduplicate, rerank, truncate
     return this.deduplicateRerankTruncate(filteredChunks, query);
   }
 
@@ -103,6 +93,8 @@ export class RetrievalService {
     Logger.info(`[RetrievalService] Multi-query retrieval with ${queryTexts.length} representations: [${queryLabels.join(', ')}]`);
 
     const embeddings = await EmbeddingService.generateEmbeddingsBatch(queryTexts);
+
+    Logger.info(`[RetrievalService] Generated embeddings for ${queryTexts.length} queries.`);
 
     const allChunksMap = new Map<string, RetrievedChunk>();
 
@@ -177,17 +169,13 @@ export class RetrievalService {
 
     let finalCandidates = uniqueChunks;
 
-    // Reranking (uses original query for relevance scoring)
     if (appConfig.rag.rerankingEnabled && uniqueChunks.length > 0) {
       try {
         Logger.info(`[RetrievalService] Reranking ${uniqueChunks.length} chunks...`);
         const documents = uniqueChunks.map(c => c.payload.text as string);
         
-        // Call reranker with all unique candidates.
-        // We will truncate down to contextTopK AFTER reranking.
         const rerankedResults = await reranker.rerank(originalQuery, documents, uniqueChunks.length);
         
-        // Map the results back to the original chunks
         const rerankedChunks: RetrievedChunk[] = [];
         let rRank = 1;
         
@@ -206,7 +194,6 @@ export class RetrievalService {
         finalCandidates = rerankedChunks;
         Logger.info(`[RetrievalService] Reranking successful.`);
 
-        // Telemetry: capture reranking analysis
         if (telemetry) {
           const scores = rerankedChunks.map(c => c.rerankScore ?? 0);
           const sorted = [...scores].sort((a, b) => a - b);
@@ -240,7 +227,6 @@ export class RetrievalService {
         
       } catch (error: any) {
         Logger.error(`[RetrievalService] Reranker failed: ${error.message}. Falling back to Dense Retrieval.`);
-        // Fallback: finalCandidates remains uniqueChunks (which is already dense-sorted)
       }
     } else if (!appConfig.rag.rerankingEnabled) {
       Logger.debug(`[RetrievalService] Reranking is disabled via configuration.`);
@@ -249,12 +235,10 @@ export class RetrievalService {
       }
     }
 
-    // Truncate to the final context Top-K
     const finalContext = finalCandidates.slice(0, contextTopK);
     
     Logger.info(`[RetrievalService] Selected ${finalContext.length} chunks for final LLM context.`);
 
-    // Telemetry: capture all candidates (with rejection reasons) and final selection
     if (telemetry) {
       const finalIds = new Set(finalContext.map(c => c.id));
 

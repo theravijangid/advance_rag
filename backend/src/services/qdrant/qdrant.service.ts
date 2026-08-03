@@ -41,20 +41,25 @@ export class QdrantService {
   }
 
   async searchChunks(workspaceId: string, vector: number[], limit: number = 5) {
-    const res = await this.client.search(this.collectionName, {
-      vector,
-      limit,
-      filter: {
-        must: [
-          {
-            key: 'workspaceId',
-            match: { value: workspaceId },
-          },
-        ],
-      },
-      with_payload: true,
-    });
-    return res;
+    try {
+      const res = await this.client.search(this.collectionName, {
+        vector,
+        limit,
+        filter: {
+          must: [
+            {
+              key: 'workspaceId',
+              match: { value: workspaceId },
+            },
+          ],
+        },
+        with_payload: true,
+      })
+      return res
+    } catch (error: any) {
+      Logger.error(`Error searching Qdrant: ${error.message}`);
+      throw new Error(`Qdrant search failed: ${error.message}`);
+    }
   }
 
   async upsertChunks(points: { id: string; vector: number[]; payload: QdrantPayload }[]): Promise<void> {
