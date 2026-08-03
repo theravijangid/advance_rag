@@ -46,7 +46,7 @@ const appConfig = {
     apiKey: getOptionalEnvVar('MEM0_API_KEY', ''),
   },
   ingest: {
-    eventKey: getOptionalEnvVar('INNGEST_EVENT_KEY', ''),
+    eventKey: getRequiredEnvVar('INNGEST_EVENT_KEY'),
   },
 }
 
