@@ -42,6 +42,13 @@ export class QdrantService {
           },
         });
         Logger.info(`Created Qdrant collection: ${this.collectionName}`);
+
+        await this.client.createPayloadIndex(this.collectionName, {
+          field_name: 'workspaceId',
+          field_schema: 'keyword',
+          wait: true,
+        });
+        Logger.info(`Created payload index for workspaceId on collection: ${this.collectionName}`);
       }
     } catch (error: any) {
       Logger.error(`Failed to ensure Qdrant collection exists: ${error.message}`);
@@ -66,7 +73,7 @@ export class QdrantService {
       })
       return res
     } catch (error: any) {
-      Logger.error(`Error searching Qdrant: ${error?.cause?.message}`);
+      Logger.error(`Error searching Qdrant: ${error?.cause?.message || error?.data?.status?.error}`);
       throw new Error(`Qdrant search failed: ${error.message}`);
     }
   }
