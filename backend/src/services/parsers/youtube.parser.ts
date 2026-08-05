@@ -1,6 +1,7 @@
 import { SourceParser, ParsedDocument, ParsedSection } from './parser.interface';
 import { YouTubeTranscriptProvider, TranscriptSegment } from '../providers/youtube-transcript-provider.interface';
 import { YTCaptionExtractor } from '../providers/yt-caption-extractor';
+import { RapidApiTranscriptProvider } from '../providers/rapidapi-transcript-provider';
 import Logger from '../../config/logger';
 
 export function extractVideoId(url: string): string | null {
@@ -78,7 +79,13 @@ export class YouTubeParser implements SourceParser {
   private provider: YouTubeTranscriptProvider;
 
   constructor(provider?: YouTubeTranscriptProvider) {
-    this.provider = provider || new YTCaptionExtractor();
+    if (provider) {
+      this.provider = provider;
+    } else if (process.env.RAPIDAPI_KEY) {
+      this.provider = new RapidApiTranscriptProvider();
+    } else {
+      this.provider = new YTCaptionExtractor();
+    }
   }
 
   async parse(fileBuffer: Buffer): Promise<ParsedDocument> {
