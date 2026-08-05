@@ -25,31 +25,11 @@ export class ChatController {
       
       const lastUserMsg = messages[messages.length - 1];
       
-      let conversationId = reqConversationId;
-      if (!conversationId) {
-        let title = lastUserMsg.content.trim();
-        if (title.length > 40) {
-          title = title.substring(0, 37) + '...';
-        }
-
-        const conversation = await Conversation.create({
-          workspaceId,
-          title,
-        });
-        conversationId = conversation.id;
-      }
-      
       const injectionDecision = await PromptInjectionService.evaluateInput(lastUserMsg.content);
       if (!injectionDecision.isSafe) {
         Logger.warn(`[ChatController] Prompt injection blocked: ${injectionDecision.reason}`);
         return apiResponseHandlingClass.handleBadRequest(res, 'Unsafe input detected: ' + (injectionDecision.reason || 'Prompt injection attempted.'));
       }
-
-      await Message.create({
-        conversationId,
-        role: 'user',
-        content: lastUserMsg.content,
-      });
 
       const requestRoutingDecision = await RequestRouterService.route(messages);
 
@@ -87,6 +67,26 @@ export class ChatController {
         fallbackResponse = ragRes.fallbackResponse;
         taskClassification = ragRes.taskClassification;
       }
+
+      let conversationId = reqConversationId;
+      if (!conversationId) {
+        let title = lastUserMsg.content.trim();
+        if (title.length > 40) {
+          title = title.substring(0, 37) + '...';
+        }
+
+        const conversation = await Conversation.create({
+          workspaceId,
+          title,
+        });
+        conversationId = conversation.id;
+      }
+
+      await Message.create({
+        conversationId,
+        role: 'user',
+        content: lastUserMsg.content,
+      });
 
       if (fallbackResponse) {
         res.writeHead(200, {
