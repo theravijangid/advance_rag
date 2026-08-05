@@ -4,7 +4,6 @@ import {
   YouTubeVideoMetadata,
 } from './youtube-transcript-provider.interface';
 import Logger from '../../config/logger';
-import { ProxyAgent, fetch as undiciFetch } from 'undici';
 
 let getSubtitles: any;
 let getVideoDetails: any;
@@ -25,29 +24,17 @@ async function loadLibrary() {
 }
 
 export class YTCaptionExtractor implements YouTubeTranscriptProvider {
-  private getCustomFetch() {
-    const proxyUrl = process.env.YOUTUBE_PROXY_URL;
-    if (proxyUrl) {
-      Logger.info(`YTCaptionExtractor: Using proxy for YouTube request`);
-      const dispatcher = new ProxyAgent(proxyUrl);
-      return (url: string | URL | globalThis.Request, init?: any) => 
-        undiciFetch(url as any, { ...init, dispatcher }) as unknown as Promise<Response>;
-    }
-    return fetch;
-  }
-
   async getTranscript(videoId: string): Promise<TranscriptSegment[]> {
     await loadLibrary();
 
     Logger.info(`YTCaptionExtractor: Fetching transcript for video ${videoId}`);
 
     try {
-      const customFetch = this.getCustomFetch();
-      const subtitles = await getSubtitles({ videoID: videoId, lang: 'en', fetch: customFetch as any });
+      const subtitles = await getSubtitles({ videoID: videoId, lang: 'en' });
 
       if (!subtitles || subtitles.length === 0) {
         // Try without language specification as fallback
-        const fallback = await getSubtitles({ videoID: videoId, fetch: customFetch as any });
+        const fallback = await getSubtitles({ videoID: videoId });
         if (!fallback || fallback.length === 0) {
           throw new Error(`No transcript available for video ${videoId}. Captions may be disabled.`);
         }
@@ -69,8 +56,7 @@ export class YTCaptionExtractor implements YouTubeTranscriptProvider {
 
     try {
       const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-      const customFetch = this.getCustomFetch();
-      const response = await customFetch(oembedUrl);
+      const response = await fetch(oembedUrl);
 
       if (!response.ok) {
         throw new Error(`YouTube oEmbed returned ${response.status}`);
