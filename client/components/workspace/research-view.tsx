@@ -145,15 +145,15 @@ export function ResearchView({
               </div>
             </div>
           )}
-          {isEmptyWorkspace ? (
-            <EmptyWorkspace onAddSource={onAddSource} />
-          ) : isHistoryLoading && conversationId && !hasMessages ? (
+          {isHistoryLoading && conversationId && !hasMessages ? (
             <div className="flex h-full items-center justify-center py-20">
               <div className="flex flex-col items-center gap-4 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
                 <p>Your chats are loading...</p>
               </div>
             </div>
+          ) : isEmptyWorkspace && !hasMessages ? (
+            <EmptyWorkspace onAddSource={onAddSource} />
           ) : !hasMessages ? (
             <ReadyEmpty onQuickAsk={handleSend} />
           ) : (
